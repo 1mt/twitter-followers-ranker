@@ -27,7 +27,7 @@ for page in tweepy.Cursor(api.followers_ids, screen_name="TARGET_SCREEN_NAME_HER
     print(str(total_count) + " accounts processed")
     
 for user in users:
-    screennames_and_count.append([user.screen_name, user.follower_count])
+    screennames_and_count.append([user.screen_name, user.followers_count])
     
 # orders list by follower account
 screennames_and_count = sorted(screennames_and_count,key=lambda l:l[1], reverse=True)

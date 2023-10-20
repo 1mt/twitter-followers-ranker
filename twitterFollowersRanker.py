@@ -1,35 +1,44 @@
-import time
 import tweepy
 
-# tweepy API config
-auth = tweepy.OAuthHandler("REDACTED", "REDACTED")
-auth.set_access_token("REDACTED", "REDACTED")
-api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
-# list of user objects
-users=[]
-# 2D list of screenname and follower count respectivly
-screennames_and_count=[]
-total_count=0
+def setup_tweepy_api(consumer_key, consumer_secret, access_token, access_token_secret):
+    """
+    Setup the tweepy API with the provided credentials.
+    """
+    auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+    auth.set_access_token(access_token, access_token_secret)
+    api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
+    return api
 
-# Gets user objects from list of ids
-def lookup_user_list(followers_id, api):
+def lookup_user_list(follower_ids, api):
+    """
+    Gets user objects from a list of IDs.
+    """
     full_users = []
-    users_count = len(followers_id)
-    for i in range(int((users_count / 100))):
-        full_users.extend(api.lookup_users(user_ids=followers_id[i*100:min((i+1)*100, users_count)]))
-    return full_users, users_count
+    users_count = len(follower_ids)
+    for i in range(0, users_count, 100):
+        batch = follower_ids[i:i+100]
+        full_users.extend(api.lookup_users(user_ids=batch))
+    return full_users
 
-# gets a list of follower ids      
-for page in tweepy.Cursor(api.followers_ids, screen_name="TARGET_SCREEN_NAME_HERE", count=200).pages():
-    temp_users, temp_count = lookup_user_list(page, api)
-    total_count += temp_count
-    users.extend(temp_users)
-    print(str(total_count) + " accounts processed")
-    
-for user in users:
-    screennames_and_count.append([user.screen_name, user.followers_count])
-    
-# orders list by follower account
-screennames_and_count = sorted(screennames_and_count,key=lambda l:l[1], reverse=True)
-# prints as a table
-print('\n'.join(['\t'.join([str(cell) for cell in row]) for row in screennames_and_count]))
+def get_followers_info(target_screen_name, api):
+    """
+    Fetch follower info for the given target screen name.
+    """
+    screennames_and_count = []
+    total_count = 0
+
+    for page in tweepy.Cursor(api.followers_ids, screen_name=target_screen_name, count=200).pages():
+        users = lookup_user_list(page, api)
+        total_count += len(users)
+        for user in users:
+            screennames_and_count.append([user.screen_name, user.followers_count])
+        print(f"{total_count} accounts processed")
+
+    screennames_and_count.sort(key=lambda x: x[1], reverse=True)
+    return screennames_and_count
+
+if __name__ == "__main__":
+    # NOTE: Replace "REDACTED" with your credentials.
+    api_instance = setup_tweepy_api("REDACTED", "REDACTED", "REDACTED", "REDACTED")
+    results = get_followers_info("TARGET_SCREEN_NAME_HERE", api_instance)
+    print('\n'.join(['\t'.join(map(str, row)) for row in results]))
